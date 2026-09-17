@@ -1,9 +1,7 @@
-use core::{alloc::Layout, panicking::panic};
-
 use spin::Mutex;
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
-use x86_64::{instructions::port::{Port, PortGeneric, ReadOnlyAccess, ReadWriteAccess, WriteOnlyAccess}, structures::{idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode}, paging::page, port::PortRead}};
+use x86_64::structures::{idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode}};
 
 use crate::{gdt::DOUBLE_FAULT_IST_INDEX, print, println};
 
@@ -42,7 +40,7 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
 }
 
 extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, code: PageFaultErrorCode) {
-    println!("[PAGE FAULT Code] {:?}", code);
+        println!("[PAGE FAULT Code] {:?}", code);
     println!("[PAGE FAULT Stack] {:?}", stack_frame);
 
     panic!();
@@ -63,7 +61,7 @@ extern "x86-interrupt" fn timer_interrupt_hander(_stack_frame: InterruptStackFra
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    use pc_keyboard::{DecodedKey, HandleControl, KeyEvent, KeyboardLayout, PS2Keyboard, Ps2Decoder, ScancodeSet, ScancodeSet1, UsbBootKeyboardReport, UsbKeyboard, layouts::{AnyLayout, Us104Key}};
+    use pc_keyboard::{DecodedKey, HandleControl, PS2Keyboard, ScancodeSet1, layouts::{AnyLayout, Us104Key}};
     use x86_64::instructions::port::Port;
     use spin::Mutex;
 
@@ -79,8 +77,8 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                DecodedKey::Unicode(char)  => crate::print!("{}", char),
-                DecodedKey::RawKey(key) => crate::print!("{:?}", key),
+                DecodedKey::Unicode(char)  => print!("{}", char),
+                DecodedKey::RawKey(key) => print!("{:?}", key),
             }
         }
     }
