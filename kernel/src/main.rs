@@ -1,14 +1,14 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
+#![feature(abi_x86_interrupt)]
 
 use bootloader_api::{BootInfo, entry_point};
-use uart_16550::backend::PioBackend;
-use uart_16550::{Config, Uart16550Tty};
 
 use crate::gdt::init;
 
-mod gdt;
-mod serial;
+pub mod gdt;
+pub mod serial;
+pub mod interrupts;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
