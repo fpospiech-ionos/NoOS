@@ -1,4 +1,4 @@
-use core::alloc::Layout;
+use core::{alloc::Layout, panicking::panic};
 
 use spin::Mutex;
 use lazy_static::lazy_static;
@@ -44,11 +44,16 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
 extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, code: PageFaultErrorCode) {
     println!("[PAGE FAULT Code] {:?}", code);
     println!("[PAGE FAULT Stack] {:?}", stack_frame);
+
+    panic!();
 }
 
 extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, code: u64) {
     println!("[GP Code] {:?}", code);
     println!("[GP Stack] {:?}", stack_frame);
+
+    panic!();
+
 }
 
 extern "x86-interrupt" fn timer_interrupt_hander(_stack_frame: InterruptStackFrame) {
