@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use x86_64::registers::segmentation::SS;
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
 use core::ptr::addr_of;
@@ -50,6 +51,7 @@ pub fn init() {
     // reload cs register and load tss
     unsafe {
         CS::set_reg(GDT.1.code_selector);
+        SS::set_reg(SegmentSelector::NULL);
         load_tss(GDT.1.tss_selector);
     }
 }

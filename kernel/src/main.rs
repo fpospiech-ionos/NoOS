@@ -38,17 +38,16 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     println!("Entered kernel with boot info: {:?}", boot_info);
     println!("\n=(^.^)= meow\n");
 
-    println!("\nMeow Meow?\n");
-
     unsafe { PICS.lock().initialize(); }
+    unsafe { PICS.lock().write_masks(0, 0); }
 
     x86_64::instructions::interrupts::enable();
+
+    println!("\nMeow Meow?\n");
 
     loop {
         x86_64::instructions::hlt();
     }
-
-    exit_qemu(QemuExitCode::Success);
 }
 
 /// This function is called on panic.

@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use x86_64::{instructions::port::{Port, PortGeneric, ReadOnlyAccess, ReadWriteAccess, WriteOnlyAccess}, structures::{idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode}, paging::page, port::PortRead}};
 
-use crate::{gdt::DOUBLE_FAULT_IST_INDEX, println};
+use crate::{gdt::DOUBLE_FAULT_IST_INDEX, print, println};
 
 lazy_static!{
     static ref IDT: InterruptDescriptorTable = {
@@ -19,6 +19,7 @@ lazy_static!{
             idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(DOUBLE_FAULT_IST_INDEX);
         }
         
+        idt[Interrupt::Timer as u8].set_handler_fn(timer_interrupt_hander);
         idt[Interrupt::Keyboard as u8].set_handler_fn(keyboard_interrupt_handler);
 
         idt
@@ -48,6 +49,12 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, c
 extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, code: u64) {
     println!("[GP Code] {:?}", code);
     println!("[GP Stack] {:?}", stack_frame);
+}
+
+extern "x86-interrupt" fn timer_interrupt_hander(_stack_frame: InterruptStackFrame) {
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(Interrupt::Timer as u8);
+    }
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
