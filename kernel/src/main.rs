@@ -2,9 +2,13 @@
 #![no_main] // disable all Rust-level entry points
 
 use bootloader_api::{BootInfo, entry_point};
-use core::fmt::Write;
 use uart_16550::backend::PioBackend;
 use uart_16550::{Config, Uart16550Tty};
+
+use crate::gdt::init;
+
+mod gdt;
+mod serial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
@@ -26,17 +30,17 @@ pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     }
 }
 
-pub fn serial() -> Uart16550Tty<PioBackend> {
-    unsafe { Uart16550Tty::new_port(0x3F8, Config::default()) }
-        .expect("should initialize serial device from valid config and valid port")
-}
-
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    let mut port = serial();
-    writeln!(port, "Entered kernel with boot info: {boot_info:?}").unwrap();
-    writeln!(port, "\n=(^.^)= meow\n").unwrap();
+    init();
+    println!("Entered kernel with boot info: {:?}", boot_info);
+    println!("\n=(^.^)= meow\n");
+
+    println!("\nMeow Meow?\n");
+
+    loop {}
+
     exit_qemu(QemuExitCode::Success);
 }
 
@@ -44,6 +48,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[panic_handler]
 #[cfg(not(test))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    let _ = writeln!(serial(), "PANIC: {info}");
+    println!("PANIC: {:?}", info);
     exit_qemu(QemuExitCode::Failed);
 }
