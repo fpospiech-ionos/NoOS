@@ -4,8 +4,6 @@ use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector
 use core::ptr::addr_of;
 use x86_64::VirtAddr;
 
-use crate::interrupts::init_idt;
-
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static! {
@@ -47,7 +45,6 @@ pub fn init() {
     use x86_64::instructions::segmentation::{Segment, CS};
     use x86_64::instructions::tables::load_tss;
 
-    init_idt();
     
     GDT.0.load();
     // reload cs register and load tss

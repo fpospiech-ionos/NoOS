@@ -1,5 +1,9 @@
+use core::alloc::Layout;
+
+use spin::Mutex;
 use lazy_static::lazy_static;
-use x86_64::structures::{idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode}, paging::page};
+use pic8259::ChainedPics;
+use x86_64::{instructions::port::{Port, PortGeneric, ReadOnlyAccess, ReadWriteAccess, WriteOnlyAccess}, structures::{idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode}, paging::page, port::PortRead}};
 
 use crate::{gdt::DOUBLE_FAULT_IST_INDEX, println};
 
@@ -14,9 +18,14 @@ lazy_static!{
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(DOUBLE_FAULT_IST_INDEX);
         }
+        
+        idt[Interrupt::Keyboard as u8].set_handler_fn(keyboard_interrupt_handler);
+
         idt
     };
 }
+
+pub static PICS: Mutex<ChainedPics> = Mutex::new(unsafe { ChainedPics::new(32, 40)} );
 
 enum Interrupt {
     Timer = 32,
@@ -39,6 +48,34 @@ extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, c
 extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, code: u64) {
     println!("[GP Code] {:?}", code);
     println!("[GP Stack] {:?}", stack_frame);
+}
+
+extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    use pc_keyboard::{DecodedKey, HandleControl, KeyEvent, KeyboardLayout, PS2Keyboard, Ps2Decoder, ScancodeSet, ScancodeSet1, UsbBootKeyboardReport, UsbKeyboard, layouts::{AnyLayout, Us104Key}};
+    use x86_64::instructions::port::Port;
+    use spin::Mutex;
+
+    lazy_static! {
+        static ref KEYBOARD: Mutex<PS2Keyboard<AnyLayout, ScancodeSet1>> = Mutex::new(PS2Keyboard::new(ScancodeSet1::new(), AnyLayout::Us104Key(Us104Key), HandleControl::Ignore));
+    }
+
+    let mut keyboard = KEYBOARD.lock();
+    let mut port  = Port::new(0x60);
+
+    let scancode: u8 = unsafe { port.read() };
+
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+        if let Some(key) = keyboard.process_keyevent(key_event) {
+            match key {
+                DecodedKey::Unicode(char)  => crate::print!("{}", char),
+                DecodedKey::RawKey(key) => crate::print!("{:?}", key),
+            }
+        }
+    }
+
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(Interrupt::Keyboard as u8);
+    }
 }
 
 pub fn init_idt() {

@@ -4,7 +4,7 @@
 
 use bootloader_api::{BootInfo, entry_point};
 
-use crate::gdt::init;
+use crate::{gdt::init, interrupts::{PICS, init_idt}};
 
 pub mod gdt;
 pub mod serial;
@@ -34,12 +34,19 @@ entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     init();
+    init_idt();
     println!("Entered kernel with boot info: {:?}", boot_info);
     println!("\n=(^.^)= meow\n");
 
     println!("\nMeow Meow?\n");
 
-    loop {}
+    unsafe { PICS.lock().initialize(); }
+
+    x86_64::instructions::interrupts::enable();
+
+    loop {
+        x86_64::instructions::hlt();
+    }
 
     exit_qemu(QemuExitCode::Success);
 }
